@@ -9,6 +9,9 @@ print("working")
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
+import google.generativeai as genai
+genai.configure(api_key="AIzaSyBBv9qZyzwaXRSR1m0yPkpvYZSKFhdNP80")
+
 
 from threading import Thread
 
@@ -61,6 +64,67 @@ def save_all_angle_plots(knee_angles, elbow_angles, prefix="angles"):
 #we can make more utility functions like this
 
 
+
+
+#rules for - Stefan
+def basic_feedback(ex_type, angles):
+    if ex_type == "squat":
+        knee_angles = angles["knee"]
+        avg_knee = mean(knee_angles)
+        min_knee = min(knee_angles)
+        if min_knee > 100:
+            return f"Your squats seem shallow (min knee angle ~{int(min_knee)}°). Try going deeper."
+        elif avg_knee < 80:
+            return "Nice depth, keep maintaining that squat form!"
+        else:
+            return "Good effort! Maintain consistent squat depth."
+    elif ex_type == "pushup":
+        elbow_angles = angles["elbow"]
+        min_elbow = min(elbow_angles)
+        if min_elbow > 110:
+            return f"Try lowering yourself more in pushups (min elbow angle ~{int(min_elbow)}°)."
+        else:
+            return "Solid pushup depth! Maintain straight back alignment."
+    else:
+        return "Exercise type not recognized."
+    
+def llm_feedback(ex_type, metrics, rule_feedback):
+    prompt = f"""
+    You are a professional fitness trainer. Analyze the following workout data and give constructive feedback
+    on the user's {ex_type} form.
+
+    Data summary:
+    {metrics}
+
+    Simple rule-based feedback: "{rule_feedback}"
+
+    Now, in natural language, give specific advice for improvement and encouragement (1-2 sentences).
+    """
+
+    try:
+        model = genai.GenerativeModel("models/gemini-2.5-flash-lite")
+        # response = model.generate_content(prompt)
+        # return response.text.strip()
+        response = model.generate_content(
+            prompt,
+            stream=True
+        )
+
+        text = ""
+        for chunk in response:
+            if chunk.text:
+                text += chunk.text
+
+        return text.strip()
+
+
+    except Exception as e:
+        print(" Gemini API error:", e)
+        return f"(LLM unavailable) {rule_feedback}"
+
+
+
+
 def calculate_angle(a, b, c):
     a, b, c = np.array(a), np.array(b), np.array(c)
     ba, bc = a - b, c - b
@@ -74,7 +138,7 @@ def process_video(video_path, exercise_type="squat", output_path="annotated_3d.m
     width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps    = cap.get(cv2.CAP_PROP_FPS)
-    width, height = 640, 480
+    # width, height = 640, 480
 
 
 
@@ -96,7 +160,7 @@ def process_video(video_path, exercise_type="squat", output_path="annotated_3d.m
             # vs = VideoStream(VIDEO_PATH)
             # frame = vs.read()
 
-            frame = cv2.resize(frame, (640, 480))
+            # frame = cv2.resize(frame, (640, 480))
 
 
             if not ret:
@@ -155,7 +219,6 @@ def process_video(video_path, exercise_type="squat", output_path="annotated_3d.m
                 ankle = [lm[mp_pose.PoseLandmark.LEFT_ANKLE.value].x * width,
                          lm[mp_pose.PoseLandmark.LEFT_ANKLE.value].y * height,
                          lm[mp_pose.PoseLandmark.LEFT_ANKLE.value].z * width]      
-                # ===========================================================
 
 
 
@@ -165,12 +228,19 @@ def process_video(video_path, exercise_type="squat", output_path="annotated_3d.m
                 knee_angles.append(knee_angle)
 
                 #rep counting
+                # if exercise_type == "squat":
+                #     if knee_angle > 150:
+                #         stage = "up"
+                #     if knee_angle < 125 and stage == "up":
+                #         stage = "down"
+                #         reps += 1
                 if exercise_type == "squat":
-                    if knee_angle > 150:
+                    if knee_angle > 160:
                         stage = "up"
-                    if knee_angle < 125 and stage == "up":
+                    if knee_angle < 100 and stage == "up":
                         stage = "down"
                         reps += 1
+
                 elif exercise_type == "pushup":
                     if elbow_angle > 160:
                         stage = "up"
@@ -178,7 +248,6 @@ def process_video(video_path, exercise_type="squat", output_path="annotated_3d.m
                         stage = "down"
                         reps += 1
 
-                # === Draw info ===
                 cv2.putText(image, f"Reps: {reps}", (30, 60),
                             cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0,255,0), 3)
                 cv2.putText(image, f"Elbow: {int(elbow_angle)} Knee: {int(knee_angle)}",
@@ -208,6 +277,22 @@ def process_video(video_path, exercise_type="squat", output_path="annotated_3d.m
     # llm_fb = llm_feedback(exercise_type, metrics, rule_fb)
 
 
+    rule_fb = basic_feedback(exercise_type, {"knee": knee_angles, "elbow": elbow_angles})  #for stefan to use best judgement
+    llm_fb = llm_feedback(exercise_type, metrics, rule_fb)
+
+    # print("\n===== WORKOUT SUMMARY =====")
+    # print(metrics)
+    # print("\n===== FEEDBACK =====")
+    # print(llm_fb)
+
+    # Save feedback to file
+    with open("feedback.txt", "w") as f:
+        f.write("WORKOUT SUMMARY:\n")
+        f.write(str(metrics) + "\n\n")
+        f.write("FEEDBACK:\n" + llm_fb)
+
+
+
 
     print(metrics)
 
@@ -233,11 +318,11 @@ if __name__ == "__main__":
     # ============================
     # Hardcoded settings (edit here)
     # ============================
-    # VIDEO_PATH = "ananya.mp4"   # <- change this
+    VIDEO_PATH = "ananya.mp4"   # <- change this
     # VIDEO_PATH= "d3.mp4"
-    VIDEO_PATH = url
+    # VIDEO_PATH = url
     EXERCISE_TYPE = "squat"                   # <- squat / pushup / etc.
-    OUTPUT_PATH = "annotated_output.mp4"      # <- change if needed
+    OUTPUT_PATH = "annotated_output_ananya2.mp4"      # <- change if needed
     # ============================
 
     process_video(VIDEO_PATH, EXERCISE_TYPE, OUTPUT_PATH)
