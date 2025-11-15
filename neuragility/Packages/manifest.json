@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.openbci.sdk": "file:/Users/ananya/Downloads/package",
     "com.unity.feature.development": "1.0.2",
     "com.unity.inputsystem": "1.14.2",
     "com.unity.learn.iet-framework": "4.1.5",
