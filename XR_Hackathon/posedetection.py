@@ -9,6 +9,25 @@ print("working")
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
+
+from threading import Thread
+
+class VideoStream:
+    def __init__(self, src):
+        self.cap = cv2.VideoCapture(src)
+        self.ret, self.frame = self.cap.read()
+        self.stopped = False
+        Thread(target=self.update, daemon=True).start()
+    def update(self):
+        while not self.stopped:
+            self.ret, self.frame = self.cap.read()
+    def read(self):
+        return self.frame.copy() if self.ret else None
+    def stop(self):
+        self.stopped = True
+        self.cap.release()
+
+
 import matplotlib.pyplot as plt
 
 def plot_angle_series(angle_list, title, filename):
@@ -55,8 +74,12 @@ def process_video(video_path, exercise_type="squat", output_path="annotated_3d.m
     width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps    = cap.get(cv2.CAP_PROP_FPS)
+    width, height = 640, 480
 
-    out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
+
+
+    # out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
+    out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), 15, (width, height))
     
     # Metrics
     knee_angles, elbow_angles = [], []
@@ -64,7 +87,18 @@ def process_video(video_path, exercise_type="squat", output_path="annotated_3d.m
     
     with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
         while cap.isOpened():
+        # while True:
             ret, frame = cap.read()
+
+            """
+            gotta do this for multi threading:
+            """
+            # vs = VideoStream(VIDEO_PATH)
+            # frame = vs.read()
+
+            frame = cv2.resize(frame, (640, 480))
+
+
             if not ret:
                 break
 
@@ -132,9 +166,9 @@ def process_video(video_path, exercise_type="squat", output_path="annotated_3d.m
 
                 #rep counting
                 if exercise_type == "squat":
-                    if knee_angle > 168:
+                    if knee_angle > 150:
                         stage = "up"
-                    if knee_angle < 155 and stage == "up":
+                    if knee_angle < 125 and stage == "up":
                         stage = "down"
                         reps += 1
                 elif exercise_type == "pushup":
@@ -187,14 +221,21 @@ def process_video(video_path, exercise_type="squat", output_path="annotated_3d.m
     print("\nAnnotated video saved to:", output_path)
     print("Feedback saved to: feedback.txt")
 
+    cv2.destroyAllWindows()
 
 if __name__ == "__main__":
+
+
+    url = "http://10.32.81.159:8080/video"  # IP Webcam app
+    # cap = cv2.VideoCapture(url)
+
     
     # ============================
     # Hardcoded settings (edit here)
     # ============================
     # VIDEO_PATH = "ananya.mp4"   # <- change this
-    VIDEO_PATH= "d3.mp4"
+    # VIDEO_PATH= "d3.mp4"
+    VIDEO_PATH = url
     EXERCISE_TYPE = "squat"                   # <- squat / pushup / etc.
     OUTPUT_PATH = "annotated_output.mp4"      # <- change if needed
     # ============================
