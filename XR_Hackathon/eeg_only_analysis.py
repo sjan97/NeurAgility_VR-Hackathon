@@ -12,7 +12,6 @@ Data Format: Single file with markers
 EEG Channels: Ch1-8
 Markers: 1st & 2nd = baseline, 3rd & 4th = task
 
-Author: Claude
 """
 
 import numpy as np
