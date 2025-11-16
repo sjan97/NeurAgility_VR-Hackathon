@@ -5,8 +5,12 @@ For our latest hack!
 https://drive.google.com/drive/folders/15AC0pDqBTlgUz36631lhlFpL9WdBeC8U?usp=sharing
 
 To run:
+python3 eeg_only_analysis.py
+
 python3 deployllm_continuous.py
+
 OR
+
 python3 deployllm_continuous_with_burpees.py
 
 
