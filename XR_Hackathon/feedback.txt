@@ -2,6 +2,6 @@ WORKOUT SUMMARY:
 {'total_reps': 5, 'avg_knee_angle': 151.7, 'avg_elbow_angle': 74.2, 'min_knee_angle': 105.7, 'min_elbow_angle': 52.8}
 
 FEEDBACK:
-1. **Good:** You maintained good squat depth this session.
-2. **Improve:** Focus on controlling the descent and ascent more.
-3. **Strong:** Your knee angle averages 151 degrees, a 5% improvement.
+1.  **Good job** on achieving good depth this session!
+2.  **Focus on controlling** your movement more.
+3.  Your **average knee angle** has improved by 12%. Great job maintaining depth!
