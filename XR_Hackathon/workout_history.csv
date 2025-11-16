@@ -1,0 +1,4 @@
+timestamp,exercise_type,total_reps,avg_knee_angle,min_knee_angle,avg_elbow_angle,min_elbow_angle,rule_feedback_summary
+2025-11-15T14:26:26.224445,squat,3,144.8,78.9,110.2,50.5,deep_squat;needs_more_control
+2025-11-15T14:45:18.155656,squat,0,151.7,105.7,74.2,52.8,good_depth;needs_more_control
+2025-11-15T14:47:47.471405,squat,5,151.7,105.7,74.2,52.8,good_depth;needs_more_control
